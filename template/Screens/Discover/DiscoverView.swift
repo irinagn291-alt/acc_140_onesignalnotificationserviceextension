@@ -42,7 +42,7 @@ struct DiscoverView: View {
                         }
                     }
                 }
-                .tabViewStyle(.page(indexDisplayMode: .automatic))
+                .tabViewStyle(.page(indexDisplayMode: .never))
                 .ignoresSafeArea()
             }
             topBar
@@ -63,7 +63,7 @@ struct DiscoverView: View {
     private var topBar: some View {
         HStack(spacing: 12) {
             Text("Bingewise").font(AppTheme.display(22)).foregroundStyle(.white)
-                .shadow(radius: 4)
+                .shadow(color: .black.opacity(0.8), radius: 6, y: 2)
             Spacer()
             Button {
                 withAnimation { searching = true }
@@ -71,11 +71,18 @@ struct DiscoverView: View {
                 Image(systemName: "magnifyingglass.circle.fill")
                     .font(.system(size: 32))
                     .foregroundStyle(.white)
-                    .shadow(radius: 4)
+                    .shadow(color: .black.opacity(0.8), radius: 6, y: 2)
             }
         }
         .padding(.horizontal, 18)
         .padding(.top, 56)
+        .padding(.bottom, 12)
+        .background(
+            LinearGradient(
+                colors: [.black.opacity(0.55), .clear],
+                startPoint: .top, endPoint: .bottom
+            )
+        )
     }
 
     // ── Search panel ──────────────────────────────────────────────────────
@@ -159,43 +166,59 @@ struct BingePosterCard: View {
     let onTap: () -> Void
     let onSave: () -> Void
 
+    private let panelHeight: CGFloat = 132
+    private let tabBarClearance: CGFloat = 84
+
     var body: some View {
-        ZStack(alignment: .bottom) {
-            AsyncImage(url: item.artworkLarge) { img in
-                img.resizable().aspectRatio(contentMode: .fill)
-            } placeholder: {
-                AppTheme.surface
-            }
-            .ignoresSafeArea()
+        GeometryReader { geo in
+            let posterHeight = max(geo.size.height - panelHeight - tabBarClearance, 0)
 
-            LinearGradient(
-                colors: [.clear, .clear, .black.opacity(0.9)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            VStack(spacing: 0) {
+                AsyncImage(url: item.artworkLarge) { img in
+                    img.resizable().aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    AppTheme.surface
+                }
+                .frame(width: geo.size.width, height: posterHeight)
+                .clipped()
 
-            HStack(alignment: .bottom, spacing: 0) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(item.kind.label.uppercased())
-                        .font(AppTheme.caption(10)).tracking(3).foregroundStyle(AppTheme.accent)
-                    Text(item.title)
-                        .font(AppTheme.display(30)).foregroundStyle(.white).lineLimit(3)
-                    Text(item.caption)
-                        .font(AppTheme.caption(13)).foregroundStyle(.white.opacity(0.7))
-                }
-                Spacer()
-                VStack(spacing: 16) {
-                    Button(action: onTap) {
-                        Image(systemName: "info.circle.fill")
-                            .font(.system(size: 30)).foregroundStyle(.white)
-                    }
-                    Button(action: onSave) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 36)).foregroundStyle(AppTheme.accent)
-                    }
-                }
+                infoPanel
+                    .frame(height: panelHeight + tabBarClearance, alignment: .top)
             }
-            .padding(.horizontal, 20).padding(.bottom, 100)
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
+            .background(AppTheme.background)
+        }
+        .ignoresSafeArea()
+    }
+
+    private var infoPanel: some View {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(item.kind.label.uppercased())
+                    .font(AppTheme.caption(10)).tracking(2).foregroundStyle(AppTheme.accent)
+                Text(item.title)
+                    .font(AppTheme.display(22)).foregroundStyle(.white).lineLimit(2)
+                Text(item.caption)
+                    .font(AppTheme.caption(13)).foregroundStyle(Color.white.opacity(0.72))
+            }
+            Spacer(minLength: 8)
+            VStack(spacing: 14) {
+                iconButton("info.circle.fill", color: .white, action: onTap)
+                iconButton("plus.circle.fill", color: AppTheme.accent, action: onSave)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 18)
+        .padding(.bottom, tabBarClearance + 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(AppTheme.surface)
+    }
+
+    private func iconButton(_ icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: icon.contains("plus") ? 34 : 28))
+                .foregroundStyle(color)
         }
     }
 }
